@@ -83,7 +83,7 @@ def delete_db(db_name):
         os.remove(db_name)
 
 
-def sql_query_employee_by_name(db_name, user_input, show_query=False):
+def sql_query_employee_by_name(db_name, user_input, show_query=False, display_neat=False):
     # Connect to the SQLite database
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
@@ -93,7 +93,7 @@ def sql_query_employee_by_name(db_name, user_input, show_query=False):
 
     # Print query if requested
     if show_query:
-        print('\033[92mQuerying: \033[0m' + "'" + query + "")
+        print('Querying: ' + "\033[92m" + query + "\033[0m")
 
     # Execute the query
     try:
@@ -108,8 +108,12 @@ def sql_query_employee_by_name(db_name, user_input, show_query=False):
     results = cursor.fetchall()
 
     # Print the results
-    for row in results:
-        print(row)
+    if display_neat:
+        for row in results:
+            print(f"Name: {row[1]}, Age: {row[2]}, Department: {row[3]}")
+    else:
+        for row in results:
+            print(row)
 
     # Close the database connection
     conn.close()
@@ -117,11 +121,10 @@ def sql_query_employee_by_name(db_name, user_input, show_query=False):
 
 def run_user_prompt():
     print('\033[94mEnter "Options" for options\033[0m')
-    print('\033[94mSearch employees by name\033[0m')
 
     show_query = False
     while True:
-        user_input = input("Database: ")
+        user_input = input("Search Employee: ")
         if user_input == 'Options':
             user_input = input("\033[94m(q)uit, (v)iew, (t)oggle show query: \033[0m")
             if user_input == 'q':
