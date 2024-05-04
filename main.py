@@ -116,14 +116,14 @@ def sql_query_employee_by_name(db_name, user_input, show_query=False):
 
 
 def run_user_prompt():
-    print('Enter "Options" for options')
-    print('Search employees by name')
+    print('\033[94mEnter "Options" for options\033[0m')
+    print('\033[94mSearch employees by name\033[0m')
 
     show_query = False
     while True:
         user_input = input("Database: ")
         if user_input == 'Options':
-            user_input = input("(q)uit, (v)iew, (t)oggle show query: ")
+            user_input = input("\033[94m(q)uit, (v)iew, (t)oggle show query: \033[0m")
             if user_input == 'q':
                 break
             elif user_input == 'v':
