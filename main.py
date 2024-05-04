@@ -39,7 +39,8 @@ def create_random_db(db_name):
         cursor.execute("INSERT INTO employees (name, age, department_id) VALUES (?, ?, ?)", (name, age, department_id))
 
     # Add Bob
-    cursor.execute("INSERT INTO employees (name, age, department_id) VALUES (?, ?, ?)", ('bob', 10, 'Engineering'))
+    # cursor.execute("INSERT INTO employees (name, age, department_id) VALUES (?, ?, ?)", ('bob', 10, 'Engineering'))
+    cursor.execute("INSERT INTO employees (name, age, department_id) VALUES (?, ?, ?)", ('bob', 10, 1))
 
     # Commit the changes
     conn.commit()
