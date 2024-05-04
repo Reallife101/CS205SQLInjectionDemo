@@ -93,10 +93,16 @@ def sql_query_employee_by_name(db_name, user_input, show_query=False):
 
     # Print query if requested
     if show_query:
-        print('Querying: ' + "'" + query + "")
+        print('\033[92mQuerying: \033[0m' + "'" + query + "")
 
     # Execute the query
-    cursor.execute(query)
+    try:
+        cursor.execute(query)
+    except Exception as e:
+        if show_query:
+            print("\033[91mInvalid Prompt: \033[0m", e)
+        else:
+            print("\033[91mInvalid Prompt\033[0m")
 
     # Fetch the results
     results = cursor.fetchall()
