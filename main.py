@@ -83,13 +83,16 @@ def delete_db(db_name):
         os.remove(db_name)
 
 
-def sql_query_employee_by_name(db_name, user_input, show_query=False, display_neat=False):
+def sql_query_employee_by_name(db_name, user_input, show_query=False, raw_sql=False):
     # Connect to the SQLite database
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
 
     # Vulnerable SQL query construction
-    query = "SELECT * FROM employees WHERE name = '" + user_input + "'"
+    if raw_sql:
+        query = user_input
+    else:
+        query = "SELECT * FROM employees WHERE name = '" + user_input + "'"
 
     # Print query if requested
     if show_query:
@@ -108,12 +111,8 @@ def sql_query_employee_by_name(db_name, user_input, show_query=False, display_ne
     results = cursor.fetchall()
 
     # Print the results
-    if display_neat:
-        for row in results:
-            print(f"Name: {row[1]}, Age: {row[2]}, Department: {row[3]}")
-    else:
-        for row in results:
-            print(row)
+    for row in results:
+        print(row)
 
     # Close the database connection
     conn.close()
@@ -123,10 +122,15 @@ def run_user_prompt():
     print('\033[94mEnter "Options" for options\033[0m')
 
     show_query = False
+    raw_sql = False
     while True:
-        user_input = input("Search Employee: ")
+        if raw_sql:
+            user_input = input("Raw SQL: ")
+        else:
+            user_input = input("Search Employee: ")
+
         if user_input == 'Options':
-            user_input = input("\033[94m(q)uit, (v)iew, (t)oggle show query: \033[0m")
+            user_input = input("\033[94m(q)uit, (v)iew, (t)oggle show query, (r)aw sql: \033[0m")
             if user_input == 'q':
                 break
             elif user_input == 'v':
@@ -134,9 +138,11 @@ def run_user_prompt():
                 view_db('sample.db')
             elif user_input == 't':
                 show_query = not show_query
+            elif user_input == 'r':
+                raw_sql = not raw_sql
         else:
             print()
-            sql_query_employee_by_name('sample.db', user_input, show_query)
+            sql_query_employee_by_name('sample.db', user_input, show_query|raw_sql, raw_sql)
             print()
  
 
