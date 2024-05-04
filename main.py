@@ -82,7 +82,7 @@ def delete_db(db_name):
         os.remove(db_name)
 
 
-def sql_query_employee_by_name(db_name, user_input):
+def sql_query_employee_by_name(db_name, user_input, show_query=False):
     # Connect to the SQLite database
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
@@ -90,8 +90,12 @@ def sql_query_employee_by_name(db_name, user_input):
     # Vulnerable SQL query construction
     query = "SELECT * FROM employees WHERE name = '" + user_input + "'"
 
+    # Print query if requested
+    if show_query:
+        print('Querying: ' + "'" + query + "")
+
     # Execute the query
-    cursor.executescript(query)
+    cursor.execute(query)
 
     # Fetch the results
     results = cursor.fetchall()
@@ -104,14 +108,37 @@ def sql_query_employee_by_name(db_name, user_input):
     conn.close()
 
 
+def run_user_prompt():
+    print('Enter "Options" for options')
+    print('Search employees by name')
+
+    show_query = False
+    while True:
+        user_input = input("Database: ")
+        if user_input == 'Options':
+            user_input = input("(q)uit, (v)iew, (t)oggle show query: ")
+            if user_input == 'q':
+                break
+            elif user_input == 'v':
+                print()
+                view_db('sample.db')
+            elif user_input == 't':
+                show_query = not show_query
+        else:
+            print()
+            sql_query_employee_by_name('sample.db', user_input, show_query)
+            print()
+ 
+
 if __name__ == '__main__':
     delete_db('sample.db')
     create_random_db('sample.db')
-    print("------------------BEFORE DB-----------------")
-    view_db('sample.db')
-    print("------------------QUERY-----------------")
-    # sql_query_employee_by_name('sample.db', "'; DELETE FROM employees WHERE name = 'bob'; --")
-    sql_query_employee_by_name('sample.db', "'; DROP TABLE employees; --")
-    print("------------------AFTER INJECTION-----------------")
-    view_db('sample.db')
+    # print("------------------BEFORE DB-----------------")
+    # view_db('sample.db')
+    # print("------------------QUERY-----------------")
+    # # sql_query_employee_by_name('sample.db', "'; DELETE FROM employees WHERE name = 'bob'; --")
+    # sql_query_employee_by_name('sample.db', "'; DROP TABLE employees; --")
+    # print("------------------AFTER INJECTION-----------------")
+    # view_db('sample.db')
+    run_user_prompt()
 
