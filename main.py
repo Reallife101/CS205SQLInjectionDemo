@@ -6,6 +6,23 @@ from faker import Faker
 from enum import Enum
 
 
+class QueryBuffer:
+    def __init__(self):
+        self.queries = []
+
+    def push(self, query):
+        self.queries.append(query)
+
+    def print(self, i=0):
+        i = len(self.queries) if i == 0 else i
+        # stack = self.queries[-1:(-1-i):-1]
+        stack = self.queries[-i:]
+        for q in stack:
+            print('    --- \033[92m' + q + '\033[0m ---')
+
+query_history = QueryBuffer()
+
+
 def create_random_db(db_name):
     # Connect to the SQLite database (creates a new database if it doesn't exist)
     conn = sqlite3.connect(db_name)
@@ -113,7 +130,11 @@ def print_employee_query(rows):
     for r in rows:
         print(fit_name(str(r[0]), max_name) + fit_name(str(r[1]), max_age) + str(r[2]))
 
-def sql_query_employee_by_name(db_name, user_input, show_query=False, raw_sql=False):
+def sql_query_employee_by_name(db_name, user_input, show_query=False, raw_sql=False, strong_sec=False):
+    # Clean input
+    if strong_sec:
+        user_input = user_input.split("'")[0]
+
     # Connect to the SQLite database
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
@@ -121,6 +142,7 @@ def sql_query_employee_by_name(db_name, user_input, show_query=False, raw_sql=Fa
     # Query the prompt
     # query = user_input if raw_sql else "SELECT name, age, department_id FROM employees WHERE name = '" + user_input + "'"
     query = user_input if raw_sql else "SELECT name, age, department_id FROM employees WHERE name COLLATE NOCASE LIKE '%" + user_input + "%'"
+    query_history.push(query)
     if raw_sql:
         print('    --- Executing: ' + "\033[92m" + query + "\033[0m ---")
     elif show_query:
@@ -152,7 +174,7 @@ def sql_query_employee_by_name(db_name, user_input, show_query=False, raw_sql=Fa
     conn.close()
 
 
-def add_employee(db_name, show_query=False):
+def add_employee(db_name, show_query=False, strong_sec=False):
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
 
@@ -160,7 +182,9 @@ def add_employee(db_name, show_query=False):
     age = input("Enter age: ")
     department_id = input("Enter department number: ")
 
-    query = f"INSERT INTO employees (name, age, department_id) VALUES ('{employee_name}', {age}, {department_id})"
+    # query = f"INSERT INTO employees (name, age, department_id) VALUES ('{employee_name}', {age}, {department_id})"
+    query = f"INSERT INTO employees (age, name, department_id) VALUES ({age}, '{employee_name}', {department_id})"
+    query_history.push(query)
     if show_query:
         print('    --- Inserting: ' + "\033[92m" + query + "\033[0m ---")
     try:
@@ -184,6 +208,7 @@ def create_employee_account(db_name, show_query=False):
         return
 
     query = "SELECT * FROM employees WHERE name = '" + employee_name + "'"
+    query_history.push(query)
     if show_query:
         print('    --- Querying: ' + "\033[92m" + query + "\033[0m ---")
     try:
@@ -199,6 +224,7 @@ def create_employee_account(db_name, show_query=False):
     username = input("Enter username: ")
     password = input("Enter password: ")
     query = f"INSERT INTO account_details (username, password) VALUES ('{username}', '{password}')"
+    query_history.push(query)
     if show_query:
         print('    --- Inserting: ' + "\033[92m" + query + "\033[0m ---")
     try:
@@ -220,6 +246,7 @@ def employee_login(db_name, show_query=False):
 
     username = input("Enter username: ")
     query = "SELECT username, password FROM account_details WHERE username = '" + username + "'"
+    query_history.push(query)
     if show_query:
         print('    --- Querying: ' + "\033[92m" + query + "\033[0m ---")
     try:
@@ -235,7 +262,7 @@ def employee_login(db_name, show_query=False):
 
     password = input("Enter password: ")
     if password == results[0][1]:
-        user = results[0][0] + '-'
+        user = results[0][0] + ' - '
 
     cursor.close()
     conn.close()
@@ -247,6 +274,7 @@ def run_user_prompt():
     print('\033[94mEnter "Options" for options\033[0m')
 
     user = ''
+    strong_sec = False
     show_query = False
     raw_sql = False
     while True:
@@ -262,16 +290,15 @@ def run_user_prompt():
             if user_input == 'q':
                 break
             elif user_input == 'e':
-                add_employee('sample.db', show_query)
+                add_employee('sample.db', show_query, strong_sec)
             elif user_input == 'a':
                 create_employee_account('sample.db', show_query)
             elif user_input == 'l':
                 user = employee_login('sample.db', show_query)
-                # user = user + " - "
 
         # Handle Debug
         elif user_input == 'Debug':
-            user_input = input("(v)iew database, (t)oggle show query, (r)aw sql: ")
+            user_input = input("(v)iew database, (t)oggle show query, (r)aw sql, (s)trong security: ")
             if user_input == 'v':
                 print()
                 view_db('sample.db')
@@ -279,14 +306,22 @@ def run_user_prompt():
                 show_query = not show_query
             elif user_input == 'r':
                 raw_sql = not raw_sql
+            elif user_input == 's':
+                strong_sec = not strong_sec
+
+        # Print Query History
+        elif user_input[0] == ':':
+            i = int(user_input[1])
+            query_history.print(i)
             
         # Handle Search
         else:
-            sql_query_employee_by_name('sample.db', user_input, show_query|raw_sql, raw_sql)
+            sql_query_employee_by_name('sample.db', user_input, show_query|raw_sql, raw_sql, strong_sec)
  
 
 if __name__ == '__main__':
     delete_db('sample.db')
     create_random_db('sample.db')
     run_user_prompt()
+    
 
