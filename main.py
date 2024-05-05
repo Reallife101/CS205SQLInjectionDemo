@@ -51,7 +51,13 @@ def create_random_db(db_name):
         cursor.execute("INSERT INTO account_details (username, password) VALUES (?, ?)", (username, password))
 
     # Add Bob
-    cursor.execute("INSERT INTO employees (name, age, department_id) VALUES (?, ?, ?)", ('Bob', 10, 1))
+    name = 'Bob'
+    username = 'user_' + name
+    password = ''.join(random.choices(string.ascii_letters, k=random.randint(5, 10)))
+    age = 10
+    department_id = 1
+    cursor.execute("INSERT INTO employees (name, age, department_id) VALUES (?, ?, ?)", (name, age, department_id))
+    cursor.execute("INSERT INTO account_details (username, password) VALUES (?, ?)", (username, password))
 
     # Commit the changes
     conn.commit()
