@@ -2,6 +2,7 @@ import sqlite3
 import random
 import string
 import os
+from faker import Faker
 
 
 def create_random_db(db_name):
@@ -24,6 +25,13 @@ def create_random_db(db_name):
                         name TEXT NOT NULL
                       )''')
 
+    # Create account table
+    cursor.execute('''CREATE TABLE IF NOT EXISTS account_details (
+                      id INTEGER PRIMARY KEY, 
+                      username TEXT NOT NULL,
+                      password TEXT NOT NULL
+                      )''')
+
     # List of departments
     departments = ['Engineering', 'Marketing', 'Finance', 'HR']
 
@@ -32,15 +40,18 @@ def create_random_db(db_name):
         cursor.execute("INSERT INTO departments (name) VALUES (?)", (dept_name,))
 
     # Generate and insert sample employee data
+    fake = Faker()
     for _ in range(30):
-        name = ''.join(random.choices(string.ascii_letters, k=random.randint(5, 10)))
+        name = fake.first_name()
+        username = 'user_' + name
+        password = ''.join(random.choices(string.ascii_letters, k=random.randint(5, 10)))
         age = random.randint(20, 60)
         department_id = random.randint(1, len(departments))
         cursor.execute("INSERT INTO employees (name, age, department_id) VALUES (?, ?, ?)", (name, age, department_id))
+        cursor.execute("INSERT INTO account_details (username, password) VALUES (?, ?)", (username, password))
 
     # Add Bob
-    # cursor.execute("INSERT INTO employees (name, age, department_id) VALUES (?, ?, ?)", ('bob', 10, 'Engineering'))
-    cursor.execute("INSERT INTO employees (name, age, department_id) VALUES (?, ?, ?)", ('bob', 10, 1))
+    cursor.execute("INSERT INTO employees (name, age, department_id) VALUES (?, ?, ?)", ('Bob', 10, 1))
 
     # Commit the changes
     conn.commit()
@@ -106,13 +117,17 @@ def sql_query_employee_by_name(db_name, user_input, show_query=False, raw_sql=Fa
             print("\033[91mInvalid Prompt: \033[0m", e)
         else:
             print("\033[91mInvalid Prompt\033[0m")
+        return
 
     # Fetch the results
     results = cursor.fetchall()
 
     # Print the results
-    for row in results:
-        print(row)
+    if not len(results):
+        print("No Results")
+    else:
+        for row in results:
+            print(row)
 
     # Close the database connection
     conn.close()
@@ -125,9 +140,9 @@ def run_user_prompt():
     raw_sql = False
     while True:
         if raw_sql:
-            user_input = input("Raw SQL: ")
+            user_input = input("\033[94mRaw SQL: \033[0m")
         else:
-            user_input = input("Search Employee: ")
+            user_input = input("\033[94mSearch Employee: \033[0m")
 
         if user_input == 'Options':
             user_input = input("\033[94m(q)uit, (v)iew, (t)oggle show query, (r)aw sql: \033[0m")
