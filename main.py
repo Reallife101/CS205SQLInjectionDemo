@@ -53,7 +53,7 @@ def create_random_db(db_name):
 
     # Add Bob
     name = 'Bob'
-    username = 'user_' + name
+    username = 'user_Bob'
     password = 'bobpass'
     age = 10
     department_id = 1
@@ -231,11 +231,11 @@ def employee_login(db_name, show_query=False):
     results = cursor.fetchall()
     if not len(results) == 1:
         print('\033[91m    --- No account with that username ---\033[0m')
-        return 
+        return user
 
     password = input("Enter password: ")
     if password == results[0][1]:
-        user = results[0][0]
+        user = results[0][0] + '-'
 
     cursor.close()
     conn.close()
@@ -267,7 +267,7 @@ def run_user_prompt():
                 create_employee_account('sample.db', show_query)
             elif user_input == 'l':
                 user = employee_login('sample.db', show_query)
-                user = user + " - "
+                # user = user + " - "
 
         # Handle Debug
         elif user_input == 'Debug':
