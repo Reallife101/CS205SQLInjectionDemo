@@ -18,7 +18,7 @@ class QueryBuffer:
         # stack = self.queries[-1:(-1-i):-1]
         stack = self.queries[-i:]
         for q in stack:
-            print('    --- \033[92m' + q + '\033[0m ---')
+            print('    \033[92m' + q + '\033[0m')
 
 query_history = QueryBuffer()
 
@@ -29,26 +29,26 @@ def create_random_db(db_name):
     cursor = conn.cursor()
 
     # Create employees table
-    cursor.execute('''CREATE TABLE IF NOT EXISTS employees (
-                        id INTEGER PRIMARY KEY,
-                        name TEXT NOT NULL,
-                        age INTEGER,
-                        department_id INTEGER,
-                        FOREIGN KEY (department_id) REFERENCES departments(id)
-                      )''')
+    cursor.executescript('''CREATE TABLE IF NOT EXISTS employees (
+                            id INTEGER PRIMARY KEY,
+                            name TEXT NOT NULL,
+                            age INTEGER,
+                            department_id INTEGER,
+                            FOREIGN KEY (department_id) REFERENCES departments(id)
+                          )''')
 
     # Create departments table
-    cursor.execute('''CREATE TABLE IF NOT EXISTS departments (
-                        id INTEGER PRIMARY KEY,
-                        name TEXT NOT NULL
-                      )''')
+    cursor.executescript('''CREATE TABLE IF NOT EXISTS departments (
+                            id INTEGER PRIMARY KEY,
+                            name TEXT NOT NULL
+                          )''')
 
     # Create account table
-    cursor.execute('''CREATE TABLE IF NOT EXISTS account_details (
-                        id INTEGER PRIMARY KEY, 
-                        username TEXT NOT NULL,
-                        password TEXT NOT NULL
-                      )''')
+    cursor.executescript('''CREATE TABLE IF NOT EXISTS account_details (
+                            id INTEGER PRIMARY KEY, 
+                            username TEXT NOT NULL,
+                            password TEXT NOT NULL
+                          )''')
 
     # List of departments
     departments = ['Engineering', 'Marketing', 'Finance', 'HR']
@@ -58,6 +58,7 @@ def create_random_db(db_name):
         cursor.execute("INSERT INTO departments (name) VALUES (?)", (dept_name,))
 
     # Generate and insert sample employee data
+    Faker.seed(123)
     fake = Faker()
     for _ in range(30):
         name = fake.first_name()
@@ -140,7 +141,7 @@ def sql_query_employee_by_name(db_name, user_input, show_query=False, raw_sql=Fa
     cursor = conn.cursor()
 
     # Query the prompt
-    # query = user_input if raw_sql else "SELECT name, age, department_id FROM employees WHERE name = '" + user_input + "'"
+    # query = user_input if raw_sql else "SELECT name, age, department_id FROM employees WHERE name COLLATE NOCASE = '" + user_input + "'"
     query = user_input if raw_sql else "SELECT name, age, department_id FROM employees WHERE name COLLATE NOCASE LIKE '%" + user_input + "%'"
     query_history.push(query)
     if raw_sql:
@@ -170,6 +171,8 @@ def sql_query_employee_by_name(db_name, user_input, show_query=False, raw_sql=Fa
             print_employee_query(results)
 
     # Close the database connection
+    if raw_sql:
+        conn.commit()
     cursor.close()
     conn.close()
 
@@ -182,13 +185,17 @@ def add_employee(db_name, show_query=False, strong_sec=False):
     age = input("Enter age: ")
     department_id = input("Enter department number: ")
 
-    # query = f"INSERT INTO employees (name, age, department_id) VALUES ('{employee_name}', {age}, {department_id})"
+    if strong_sec:
+        employee_name = employee_name.split("'")[0]
+        age = age.split("'")[0]
+        department_id = department_id.split("'")[0]
+
     query = f"INSERT INTO employees (age, name, department_id) VALUES ({age}, '{employee_name}', {department_id})"
     query_history.push(query)
     if show_query:
         print('    --- Inserting: ' + "\033[92m" + query + "\033[0m ---")
     try:
-        cursor.execute(query)
+        cursor.executescript(query)
         conn.commit()
     except Exception as e:
         if show_query:
@@ -228,7 +235,7 @@ def create_employee_account(db_name, show_query=False):
     if show_query:
         print('    --- Inserting: ' + "\033[92m" + query + "\033[0m ---")
     try:
-        cursor.execute("INSERT INTO account_details (username, password) VALUES (?, ?)", (username, password))
+        cursor.executescript(query)
         conn.commit()
     except Exception as e:
         if show_query:
@@ -286,7 +293,7 @@ def run_user_prompt():
 
         # Handle Options 
         if user_input == 'Options':
-            user_input = input("(q)uit, add (e)mployee, add (a)ccount, (l)ogin: ")
+            user_input = input("(q)uit, Add-(e)mployee, Add-(a)ccount, (l)ogin, log(o)ut: ")
             if user_input == 'q':
                 break
             elif user_input == 'e':
@@ -295,6 +302,8 @@ def run_user_prompt():
                 create_employee_account('sample.db', show_query)
             elif user_input == 'l':
                 user = employee_login('sample.db', show_query)
+            elif user_input == 'o':
+                user = ''
 
         # Handle Debug
         elif user_input == 'Debug':
@@ -310,7 +319,7 @@ def run_user_prompt():
                 strong_sec = not strong_sec
 
         # Print Query History
-        elif user_input[0] == ':':
+        elif user_input and user_input[0] == ':':
             i = int(user_input[1])
             query_history.print(i)
             
