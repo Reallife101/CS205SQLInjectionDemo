@@ -101,22 +101,30 @@ def delete_db(db_name):
         os.remove(db_name)
 
 
+def fit_name(name, length):
+    extra = length - len(name)
+    return name + ' '*extra
+
+
+def print_employee_query(rows):
+    max_name = max([ len(str(r[0])) for r in rows ] + [5]) + 1
+    max_age = max([ len(str(r[1])) for r in rows ] + [4]) + 1
+    print(fit_name('Name:', max_name) + fit_name('Age:', max_age) + 'Department:')
+    for r in rows:
+        print(fit_name(str(r[0]), max_name) + fit_name(str(r[1]), max_age) + str(r[2]))
+
 def sql_query_employee_by_name(db_name, user_input, show_query=False, raw_sql=False):
     # Connect to the SQLite database
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
 
-    # Vulnerable SQL query construction
+    # Query the prompt
+    # query = user_input if raw_sql else "SELECT name, age, department_id FROM employees WHERE name = '" + user_input + "'"
+    query = user_input if raw_sql else "SELECT name, age, department_id FROM employees WHERE name COLLATE NOCASE LIKE '%" + user_input + "%'"
     if raw_sql:
-        query = user_input
-    else:
-        query = "SELECT * FROM employees WHERE name = '" + user_input + "'"
-
-    # Print query if requested
-    if show_query:
+        print('    --- Executing: ' + "\033[92m" + query + "\033[0m ---")
+    elif show_query:
         print('    --- Querying: ' + "\033[92m" + query + "\033[0m ---")
-
-    # Execute the query
     try:
         cursor.execute(query)
     except Exception as e:
@@ -133,8 +141,11 @@ def sql_query_employee_by_name(db_name, user_input, show_query=False, raw_sql=Fa
     if not len(results):
         print("No Results")
     else:
-        for row in results:
-            print(row)
+        if raw_sql:
+            for row in results:
+                print(row)
+        else:
+            print_employee_query(results)
 
     # Close the database connection
     cursor.close()
@@ -151,12 +162,13 @@ def add_employee(db_name, show_query=False):
 
     query = f"INSERT INTO employees (name, age, department_id) VALUES ('{employee_name}', {age}, {department_id})"
     if show_query:
-        print('    --- Querying: ' + "\033[92m" + query + "\033[0m ---")
+        print('    --- Inserting: ' + "\033[92m" + query + "\033[0m ---")
     try:
         cursor.execute(query)
         conn.commit()
     except Exception as e:
-        pass
+        if show_query:
+            print("\033[91m    --- Invalid Prompt ---\033[0m", e)
 
     cursor.close()
     conn.close()
@@ -177,7 +189,8 @@ def create_employee_account(db_name, show_query=False):
     try:
         cursor.execute(query)
     except Exception as e:
-        pass
+        if show_query:
+            print("\033[91m    --- Invalid Prompt ---\033[0m", e)
 
     results = cursor.fetchall()
     if not len(results) == 1:
@@ -187,12 +200,13 @@ def create_employee_account(db_name, show_query=False):
     password = input("Enter password: ")
     query = f"INSERT INTO account_details (username, password) VALUES ('{username}', '{password}')"
     if show_query:
-        print('    --- Querying: ' + "\033[92m" + query + "\033[0m ---")
+        print('    --- Inserting: ' + "\033[92m" + query + "\033[0m ---")
     try:
         cursor.execute("INSERT INTO account_details (username, password) VALUES (?, ?)", (username, password))
         conn.commit()
     except Exception as e:
-        pass
+        if show_query:
+            print("\033[91m    --- Invalid Prompt ---\033[0m", e)
 
     cursor.close()
     conn.close()
@@ -211,7 +225,8 @@ def employee_login(db_name, show_query=False):
     try:
         cursor.execute(query)
     except Exception as e:
-        pass
+        if show_query:
+            print("\033[91m    --- Invalid Prompt ---\033[0m", e)
 
     results = cursor.fetchall()
     if not len(results) == 1:
@@ -273,12 +288,5 @@ def run_user_prompt():
 if __name__ == '__main__':
     delete_db('sample.db')
     create_random_db('sample.db')
-    # print("------------------BEFORE DB-----------------")
-    # view_db('sample.db')
-    # print("------------------QUERY-----------------")
-    # # sql_query_employee_by_name('sample.db', "'; DELETE FROM employees WHERE name = 'bob'; --")
-    # sql_query_employee_by_name('sample.db', "'; DROP TABLE employees; --")
-    # print("------------------AFTER INJECTION-----------------")
-    # view_db('sample.db')
     run_user_prompt()
 
