@@ -3,6 +3,7 @@ import random
 import string
 import os
 from faker import Faker
+from enum import Enum
 
 
 def create_random_db(db_name):
@@ -27,9 +28,9 @@ def create_random_db(db_name):
 
     # Create account table
     cursor.execute('''CREATE TABLE IF NOT EXISTS account_details (
-                      id INTEGER PRIMARY KEY, 
-                      username TEXT NOT NULL,
-                      password TEXT NOT NULL
+                        id INTEGER PRIMARY KEY, 
+                        username TEXT NOT NULL,
+                        password TEXT NOT NULL
                       )''')
 
     # List of departments
@@ -53,7 +54,7 @@ def create_random_db(db_name):
     # Add Bob
     name = 'Bob'
     username = 'user_' + name
-    password = ''.join(random.choices(string.ascii_letters, k=random.randint(5, 10)))
+    password = 'bobpass'
     age = 10
     department_id = 1
     cursor.execute("INSERT INTO employees (name, age, department_id) VALUES (?, ?, ?)", (name, age, department_id))
@@ -113,16 +114,16 @@ def sql_query_employee_by_name(db_name, user_input, show_query=False, raw_sql=Fa
 
     # Print query if requested
     if show_query:
-        print('Querying: ' + "\033[92m" + query + "\033[0m")
+        print('    --- Querying: ' + "\033[92m" + query + "\033[0m ---")
 
     # Execute the query
     try:
         cursor.execute(query)
     except Exception as e:
         if show_query:
-            print("\033[91mInvalid Prompt: \033[0m", e)
+            print("\033[91m    --- Invalid Prompt ---\033[0m", e)
         else:
-            print("\033[91mInvalid Prompt\033[0m")
+            print("No Results")
         return
 
     # Fetch the results
@@ -136,35 +137,137 @@ def sql_query_employee_by_name(db_name, user_input, show_query=False, raw_sql=Fa
             print(row)
 
     # Close the database connection
+    cursor.close()
     conn.close()
+
+
+def add_employee(db_name, show_query=False):
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+
+    employee_name = input("Enter name: ")
+    age = input("Enter age: ")
+    department_id = input("Enter department number: ")
+
+    query = f"INSERT INTO employees (name, age, department_id) VALUES ('{employee_name}', {age}, {department_id})"
+    if show_query:
+        print('    --- Querying: ' + "\033[92m" + query + "\033[0m ---")
+    try:
+        cursor.execute(query)
+        conn.commit()
+    except Exception as e:
+        pass
+
+    cursor.close()
+    conn.close()
+
+
+def create_employee_account(db_name, show_query=False):
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+
+    employee_name = input("Enter employee name: ")
+    if "'" in employee_name:
+        print('\033[91m    --- Invalid Name ---\033[0m')
+        return
+
+    query = "SELECT * FROM employees WHERE name = '" + employee_name + "'"
+    if show_query:
+        print('    --- Querying: ' + "\033[92m" + query + "\033[0m ---")
+    try:
+        cursor.execute(query)
+    except Exception as e:
+        pass
+
+    results = cursor.fetchall()
+    if not len(results) == 1:
+        return
+
+    username = input("Enter username: ")
+    password = input("Enter password: ")
+    query = f"INSERT INTO account_details (username, password) VALUES ('{username}', '{password}')"
+    if show_query:
+        print('    --- Querying: ' + "\033[92m" + query + "\033[0m ---")
+    try:
+        cursor.execute("INSERT INTO account_details (username, password) VALUES (?, ?)", (username, password))
+        conn.commit()
+    except Exception as e:
+        pass
+
+    cursor.close()
+    conn.close()
+
+
+def employee_login(db_name, show_query=False):
+    user = ''
+
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+
+    username = input("Enter username: ")
+    query = "SELECT username, password FROM account_details WHERE username = '" + username + "'"
+    if show_query:
+        print('    --- Querying: ' + "\033[92m" + query + "\033[0m ---")
+    try:
+        cursor.execute(query)
+    except Exception as e:
+        pass
+
+    results = cursor.fetchall()
+    if not len(results) == 1:
+        print('\033[91m    --- No account with that username ---\033[0m')
+        return 
+
+    password = input("Enter password: ")
+    if password == results[0][1]:
+        user = results[0][0]
+
+    cursor.close()
+    conn.close()
+
+    return user
 
 
 def run_user_prompt():
     print('\033[94mEnter "Options" for options\033[0m')
 
+    user = ''
     show_query = False
     raw_sql = False
     while True:
+        # Prompt Search
         if raw_sql:
             user_input = input("\033[94mRaw SQL: \033[0m")
         else:
-            user_input = input("\033[94mSearch Employee: \033[0m")
+            user_input = input("\033[93m" + user + "\033[0m" + "\033[94mSearch Employee: \033[0m")
 
+        # Handle Options 
         if user_input == 'Options':
-            user_input = input("\033[94m(q)uit, (v)iew, (t)oggle show query, (r)aw sql: \033[0m")
+            user_input = input("(q)uit, add (e)mployee, add (a)ccount, (l)ogin: ")
             if user_input == 'q':
                 break
-            elif user_input == 'v':
+            elif user_input == 'e':
+                add_employee('sample.db', show_query)
+            elif user_input == 'a':
+                create_employee_account('sample.db', show_query)
+            elif user_input == 'l':
+                user = employee_login('sample.db', show_query)
+                user = user + " - "
+
+        # Handle Debug
+        elif user_input == 'Debug':
+            user_input = input("(v)iew database, (t)oggle show query, (r)aw sql: ")
+            if user_input == 'v':
                 print()
                 view_db('sample.db')
             elif user_input == 't':
                 show_query = not show_query
             elif user_input == 'r':
                 raw_sql = not raw_sql
+            
+        # Handle Search
         else:
-            print()
             sql_query_employee_by_name('sample.db', user_input, show_query|raw_sql, raw_sql)
-            print()
  
 
 if __name__ == '__main__':
