@@ -228,8 +228,8 @@ def create_employee_account(db_name, show_query=False):
     if not len(results) == 1:
         return
 
-    username = input("Enter username: ")
-    password = input("Enter password: ")
+    username = input("Create username: ")
+    password = input("Create password: ")
     query = f"INSERT INTO account_details (username, password) VALUES ('{username}', '{password}')"
     query_history.push(query)
     if show_query:
